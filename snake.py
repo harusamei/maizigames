@@ -9,47 +9,108 @@ screen.setup(width=800, height=600)
 
 
 class Snake:
-    colors = ["red", "green"]
-    diameter = 10
-    step_size = 2
-    body = []   # 蛇身的每一个圆的圆心X,Y坐标
+    diameter = 1
+    step_size = 10*diameter
+    body = []   # 蛇身
     thetas = [] # 计算圆周角度用
-    # 24个角度, 分为4个象限/方向
-    for i in range(0, 360, 15):
+    # 72个角度, 分为4个象限/方向
+    for i in range(0, 360, 5):
         x_cos = math.cos(math.radians(i))
         y_sin = math.sin(math.radians(i))
         thetas.append((x_cos, y_sin))
     quad_size = int(len(thetas)/4)
     print(f"quad lengh: {len(thetas)}, quad size: {quad_size}")
 
-    def __init__(self, bg_width=800, bg_height=600):
+    def __init__(self, bg_width=400, bg_height=400):
         self.bg_width = bg_width/2
         self.bg_height = bg_height/2
         self.snake = turtle.Turtle()
         self.shead = turtle.Turtle()    # 蛇头
-        self.shead.color("purple")
-        self.shead.shape("arrow")       # 蛇头朝左
-        self.shead.setheading(180)
-        self.shead.shapesize(self.diameter/20, self.diameter/20, self.diameter/5)
+        self.shead.shape("arrow")       # 蛇头朝上
+        self.shead.color("green")
+        self.shead.setheading(90)
+        self.shead.shapesize(self.diameter/2, self.diameter/2, 5)   # 三角形
         self.shead.speed(0)
 
         self.snake.speed(0)
-        self.snake.hideturtle()
-        
-        self.size = 1
+        self.snake.shape("circle")
+        self.snake.shapesize(self.diameter/2, self.diameter/2, 1)
 
-    def create(self, head=(0, 0), size=1, color="black"):
-        self.size = size
+        self.size = 5
+
+    def create(self, head=(0, 0), color="black"):
         self.shead.goto(head)
 
         self.snake.color(color)
         self.snake.penup()
-        self.snake.goto(head[0]+self.diameter, head[1])
-
+        self.snake.goto(head[0], head[1]-self.step_size)
+        self.snake.setheading(270)
+        self.body.append((self.snake.stamp(), self.snake.pos()))
         for i in range(self.size):
-            self.snake.dot(self.diameter, color)
-            self.body.append(self.snake.pos())
-            self.snake.forward(self.diameter)
+            self.snake.forward(self.step_size)
+            pos = self.snake.pos()
+            self.body.append((self.snake.stamp(), pos))
+        
+        return
+    
+    def add_tail(self, size=1):
+        item = self.body[-1]
+        pos = item[1]
+        self.snake.goto(pos[0], pos[1])
+        fangxiang = int(self.snake.heading())   # 蛇尾的方向
+        for i in range(size):
+            self.snake.setheading(fangxiang)
+            new_pos = self.tiaozheng_pos(self.snake.pos())
+            if new_pos != self.snake.pos():
+                self.snake.goto(new_pos)
+            self.snake.forward(self.step_size)
+            pos = self.snake.pos()
+            self.body.append((self.snake.stamp(), pos))
+            choice = self.choose_direction(fangxiang)
+            #print(f"fangxiang: {fangxiang}, choice: {choice}")
+            fangxiang = random.choice(list(choice))
+        
+        return
+    
+    def clear_tail(self, size=1):
+        if len(self.body) < size:
+            size = len(self.body)
+        for _ in range(size):
+            item = self.body.pop()
+            stamp = item[0]
+            self.snake.clearstamp(stamp)
+        pos = self.shead.pos()
+        self.snake.goto(pos[0], pos[1]-self.step_size)
+
+    # 旋转角度, 逆时针为正，顺时针为负
+    def rotate_angle(self, angle, rotation):
+        new_angle = angle + rotation
+        if new_angle < 0:
+            new_angle += 360
+        elif new_angle >= 360:
+            new_angle -= 360
+        return new_angle
+    
+    # 选择方向
+    # 去掉当前方向的反方向，顺逆各45度
+    def choose_direction(self, angle):
+        b_angle = self.rotate_angle(angle, 180)
+        b1 = self.rotate_angle(b_angle, 60)
+        b2 = self.rotate_angle(b_angle, -60)
+        if b1 < b2:
+            b_set = set(range(0, b1, 5)).union(set(range(b2, 360, 5)))
+        else:
+            b_set = set(range(b2, b1, 5))
+        return set(range(0, 360, 5))-b_set
+    
+    def tiaozheng_pos(self, pos):
+        x = pos[0]
+        y = pos[1]
+        if abs(x) > self.bg_width:
+            x = abs(x)/x * (self.bg_width-self.step_size)
+        if abs(y) > self.bg_height:
+            y = abs(y)/y * (self.bg_height-self.step_size)
+        return (x, y)
 
     def move_random(self, head=(0, 0), size=1, color="black"):
         self.size = size
@@ -84,12 +145,7 @@ class Snake:
             self.snake.dot(self.diameter, color)
             self.body.append(self.snake.pos())
 
-    def clear_tail(self, size=1):
-        for _ in range(size):
-            item = self.body.pop()
-            self.snake.penup()
-            self.snake.goto(item)
-            self.snake.dot(self.diameter, "white")
+    
 
     def setheading(self, angle):
         self.snake.setheading(angle)
@@ -164,12 +220,9 @@ class Snake:
 # 创建一个Turtle对象
 start = time.time()
 snake = Snake()
-snake.create((0,0), 10)
-# for angle in range(90, 360, 45):
-#     snake.setheading(angle)
-#     snake.move_forward(5)
-for _ in range(5):
-    snake.move_circle((0,0),100)
+snake.create((0,0))
+snake.add_tail(3000)
+snake.clear_tail(50)
 end = time.time()
 print("Time: ", end-start)
 turtle.done()
