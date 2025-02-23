@@ -11,19 +11,21 @@ screen.setup(width=800, height=600)
 class Snake:
     diameter = 1
     step_size = 10*diameter
+    grid_size = 10*diameter
     body = []   # 蛇身
-    thetas = [] # 计算圆周角度用
-    # 72个角度, 分为4个象限/方向
-    for i in range(0, 360, 5):
-        x_cos = math.cos(math.radians(i))
-        y_sin = math.sin(math.radians(i))
-        thetas.append((x_cos, y_sin))
-    quad_size = int(len(thetas)/4)
-    print(f"quad lengh: {len(thetas)}, quad size: {quad_size}")
+    grid = []   # 背景网格
 
     def __init__(self, bg_width=400, bg_height=400):
+        
+        w1 = bg_width//(self.grid_size)
+        h1 = bg_height//(self.grid_size)
+        # 创建一个背景网格
+        self.grid = [[0 for _ in range(w1)] for _ in range(h1)]
+        print("Grid: ", len(self.grid), len(self.grid[0]))
+
         self.bg_width = bg_width/2
         self.bg_height = bg_height/2
+
         self.snake = turtle.Turtle()
         self.shead = turtle.Turtle()    # 蛇头
         self.shead.shape("arrow")       # 蛇头朝上
@@ -36,8 +38,10 @@ class Snake:
         self.snake.shape("circle")
         self.snake.shapesize(self.diameter/2, self.diameter/2, 1)
 
-        self.size = 5
+        self.length = 5       # 初始长度
+        
 
+    # 创建一条蛇
     def create(self, head=(0, 0), color="black"):
         self.shead.goto(head)
 
@@ -46,29 +50,29 @@ class Snake:
         self.snake.goto(head[0], head[1]-self.step_size)
         self.snake.setheading(270)
         self.body.append((self.snake.stamp(), self.snake.pos()))
-        for i in range(self.size):
+        for i in range(self.length-1):
             self.snake.forward(self.step_size)
             pos = self.snake.pos()
             self.body.append((self.snake.stamp(), pos))
         
         return
     
-    def add_tail(self, size=1):
-        item = self.body[-1]
+    def add_tail(self, size=1, Mode = 'random'):
+        item = self.body[-1]    # 当前蛇尾的位置
         pos = item[1]
         self.snake.goto(pos[0], pos[1])
         fangxiang = int(self.snake.heading())   # 蛇尾的方向
         for i in range(size):
-            self.snake.setheading(fangxiang)
-            new_pos = self.tiaozheng_pos(self.snake.pos())
-            if new_pos != self.snake.pos():
-                self.snake.goto(new_pos)
-            self.snake.forward(self.step_size)
+            new_move = self.chooseNext(pos, fangxiang, Mode=Mode)
+            if isinstance(new_move, tuple):
+                self.snake.goto(new_move)
+            else:
+                fangxiang = new_move
+                self.snake.setheading(fangxiang)
+                self.snake.forward(self.step_size)
+
             pos = self.snake.pos()
             self.body.append((self.snake.stamp(), pos))
-            choice = self.choose_direction(fangxiang)
-            #print(f"fangxiang: {fangxiang}, choice: {choice}")
-            fangxiang = random.choice(list(choice))
         
         return
     
@@ -82,35 +86,58 @@ class Snake:
         pos = self.shead.pos()
         self.snake.goto(pos[0], pos[1]-self.step_size)
 
-    # 旋转角度, 逆时针为正，顺时针为负
-    def rotate_angle(self, angle, rotation):
-        new_angle = angle + rotation
-        if new_angle < 0:
-            new_angle += 360
-        elif new_angle >= 360:
-            new_angle -= 360
-        return new_angle
-    
-    # 选择方向
-    # 去掉当前方向的反方向，顺逆各45度
-    def choose_direction(self, angle):
-        b_angle = self.rotate_angle(angle, 180)
-        b1 = self.rotate_angle(b_angle, 60)
-        b2 = self.rotate_angle(b_angle, -60)
-        if b1 < b2:
-            b_set = set(range(0, b1, 5)).union(set(range(b2, 360, 5)))
-        else:
-            b_set = set(range(b2, b1, 5))
-        return set(range(0, 360, 5))-b_set
-    
-    def tiaozheng_pos(self, pos):
-        x = pos[0]
-        y = pos[1]
+    # 选择下步走法，有两种输出，一种是直接返回下一步的坐标，另一种是返回下一步的方向
+    def chooseNext(self, pos, fangxiang='90', Mode='random'):
+        # 撞墙情况直接返回新位置
+        x, y = pos[0],pos[1]
+        qiang = False
         if abs(x) > self.bg_width:
-            x = abs(x)/x * (self.bg_width-self.step_size)
+            x = abs(x)/x * (abs(x)-self.step_size)
+            qiang = True
         if abs(y) > self.bg_height:
-            y = abs(y)/y * (self.bg_height-self.step_size)
-        return (x, y)
+            y = abs(y)/y * (abs(y)-self.step_size)
+            qiang = True
+        if qiang:
+            return (x, y)
+
+        Mode = Mode.lower()
+        fangxiang = fangxiang
+        if Mode == 'random':       #上下左右随机,但不走返回
+            fangxiang1 = self.by_random(pos, fangxiang)
+        elif Mode == 'nocrowded':   # 选没走过的，不拥挤
+            fangxiang1 = self.by_nocrowded(pos, fangxiang)
+        else:
+            fangxiang1 = fangxiang
+        return fangxiang1
+            
+    def by_random(self, pos, fangxiang):
+        fangxiang = ((fangxiang+180)//90)*90    #返回方向
+        fangxiang = fangxiang % 360
+        choice = set([0, 90, 180, 270])-set([fangxiang])
+        return random.choice(list(choice))   # 选择一个方向
+
+    def by_nocrowded(self, pos, fangxiang):
+        x, y = pos
+        grid_x = (x+self.bg_width)/self.grid_size
+        grid_y = (y+self.bg_height)/self.grid_size
+        min = -1
+        hit = 0
+        # 当前位置构成的9宫格，逆时针
+        wz = [(1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1), (0,1), (1,1)]
+        fangxiang = [0, 45, 90, 135, 180, 225, 270, 315]
+
+        for i, item in enumerate(wz):
+            grid_x += item[0]
+            grid_y += item[1]
+            if grid_x >= len(self.grid[0]) or grid_y >= len(self.grid):
+                continue
+            if hit >= self[grid_y][grid_x]:
+                min = i
+                hit = self[grid_y][grid_x]
+        if min < 0:
+            min = random.randint(0, 8)
+        return fangxiang[min]
+
 
     def move_random(self, head=(0, 0), size=1, color="black"):
         self.size = size
@@ -146,7 +173,6 @@ class Snake:
             self.body.append(self.snake.pos())
 
     
-
     def setheading(self, angle):
         self.snake.setheading(angle)
         self.shead.setheading(angle)
@@ -154,75 +180,12 @@ class Snake:
     def getheading(self):
         return self.shead.heading()
     
-    def move_forward(self, step=1):
-        for i in range(step):
-            s_pos = self.shead.pos()
-            self.shead.forward(self.step_size*self.diameter)
-            self.snake.penup()
-            self.snake.goto(s_pos)
-            for _ in range(self.step_size):
-                self.snake.forward(self.diameter)
-                self.snake.dot(self.diameter)
-                self.body.insert(0, self.snake.pos())
-            self.clear_tail(self.step_size)
-
-    def move_goto(self, t_x, t_y):
-        s_pos = self.shead.pos()
-        distance = math.sqrt((t_x-s_pos[0])**2 + (t_y-s_pos[1])**2)
-        d = self.diameter*0.9
-        count = math.floor(distance/d)
-        print("Distance: ", distance, "Count: ", count)
-        angle = math.degrees(math.atan2(t_y-s_pos[1], t_x-s_pos[0]))
-        self.shead.setheading(angle)
-        self.shead.pendown()
-        self.shead.goto(t_x, t_y)
-
-        self.snake.setheading(angle)
-        self.snake.penup()
-        self.snake.goto(s_pos)
-        self.snake.pendown()
-        for i in range(count):
-            self.snake.forward(d)
-            self.snake.dot(self.diameter)
-            self.body.insert(0, self.snake.pos())
-        self.clear_tail(count)
-
-    def move_up(self, step=1):
-        self.setheading(90)
-        self.move_forward(step)
-    
-    def move_down(self, step=1):
-        self.setheading(270)
-        self.move_forward(step)
-
-    def move_left(self, step=1):
-        self.setheading(180)
-        self.move_forward(step)
-
-    def move_right(self, step=1):
-        self.setheading(0)
-        self.move_forward(step)
-
-    # 以跎头为圆心, 逆时针旋转
-    def move_circle(self, center, r):
-        steps = 2*math.pi*r/(self.diameter*2)   # 一个圆的步数,一次两个dot长
-        theta = []
-        for i in range(0, 360, int(360/steps)):
-            x_cos = math.cos(math.radians(i))
-            y_sin = math.sin(math.radians(i))
-            theta.append((x_cos, y_sin))
-
-        for item in theta:
-            x = center[0] + r*item[0]
-            y = center[1] + r*item[1]
-            self.move_goto(x, y)
-    
 # 创建一个Turtle对象
 start = time.time()
 snake = Snake()
 snake.create((0,0))
 snake.add_tail(3000)
-snake.clear_tail(50)
+#snake.clear_tail(30)
 end = time.time()
 print("Time: ", end-start)
 turtle.done()
