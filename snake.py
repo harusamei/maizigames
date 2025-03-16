@@ -2,12 +2,95 @@ import turtle
 import random
 import time
 import bisect
+import math
 
 # 设置画布
-screen = turtle.Screen()
-screen.bgcolor("white")
-screen.setup(width=800, height=600)
+class Screen:
+    # 背景和网络的坐标系原点在左下角
+    def __init__(self, width=800, height=600, bgcolor="white", grid_size=10):
+        self.screen = turtle.Screen()
+        self.screen.bgcolor(bgcolor)
+        self.screen.setup(width=width, height=height)
+        self.width = int(width)
+        self.height = int(height)
+        # 如以中心为原点，偏移量
+        self.offset = (int(width/2), int(height/2))
+        print("background: ", self.bg_width, self.bg_height)
+        self.grid_size = grid_size
+        self.grid = [[0 for _ in range(self.width//self.grid_size)] for _ in range(self.height//self.grid_size)]
+        # 行数是高，列数是宽
+        print("Grid: ", len(self.grid[0]),len(self.grid))
 
+    # 撞墙检测，如果撞墙返回新位置
+    def hit_wall(self, pos):
+        x, y = pos
+        # 没有撞墙
+        if x> 0 and x< self.width and y> 0 or y< self.height:
+            return pos
+        # 撞墙
+        x = min(max(x, 0), self.width-5)
+        y = min(max(y, 0), self.height-5)
+        return (x, y)
+    
+    # 记录网格被经历的次数
+    def record_grid(self, pos):
+        x = int(pos[0]//self.grid_size)
+        y = int(pos[1]//self.grid_size)
+        self.grid[y][x] += 1
+        return 
+    
+    # 推荐下一步的走的方向
+    # model: random, traval, keephead
+    def suggest_head(self, pos, head=0, model='random'):
+        # 保持原方向
+        model = model.lower()
+        if model == 'keephead':
+            return head
+        # 随机不走回头路
+        if model == 'random':
+            head = (head+180)%(360//90)*90
+            choice = set([0, 90, 180, 270])-set([head])
+            return random.choice(list(choice))
+        # 遍历式，选择最少走过的方向
+        if model == 'traval':  
+            return self.traval(pos, head)
+        
+        # 完全随机
+        return (head+random(360))%360
+          
+    def traval(self, pos, head):
+        x = int(pos[0]//self.grid_size)
+        y = int(pos[1]//self.grid_size)
+        # 当前weizhi构成的9宫格，逆时针
+        wz = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
+        # fangxiang
+        fx = [0, 45, 90, 135, 180, 225, 270, 315]
+        old_fx = (head+180)//45*45  #回头方向
+        hits = [0] * len(wz)
+        maxHit = 10000
+        for i, item in enumerate(wz):
+            x1 = x + item[0]
+            y1 = y + item[1]
+            if x1 >= len(self.grid[0]) or y1 >= len(self.grid):
+                hits[i] = maxHit
+            else:
+                hits[i] = self.grid[y1][x1]
+        minHit = min(hits)
+        choice = [fx[i] for i, hit in enumerate(hits) if hit <= minHit]
+        choice = set(choice)-set([old_fx])
+        if len(choice) == 0:
+            return head
+        return random.choice(list(choice))
+
+    def get_angle(self, pos1, pos2):
+        x1, y1 = pos1
+        x2, y2 = pos2
+        
+        dy = y2 - y1
+        dx = x2 - x1
+        tan = math.atan2(dy, dx)
+        angle = math.degrees(tan)
+        return angle
 
 class Snake:
     diameter = 1
@@ -154,12 +237,11 @@ class Snake:
         # 当前位置构成的9宫格，逆时针
         wz = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
         fangxiang = [0, 45, 90, 135, 180, 225, 270, 315]
-        wz = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-        fangxiang = [0, 90, 180, 270]
+        # wz = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        # fangxiang = [0, 90, 180, 270]
         old_index = bisect.bisect_left(fangxiang, fx)
-        if fx == 90:
-           old_index
-        count = [0] * 4
+        
+        count = [0] * len(wz)
         maxHit = 10000
         for i, item in enumerate(wz):
             grid_x1 = grid_x + item[0]
