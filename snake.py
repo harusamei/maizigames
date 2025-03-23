@@ -53,22 +53,25 @@ class Screen:
             choice = set([0, 90, 180, 270])-set([head])
             return random.choice(list(choice))
         # 遍历式，选择最少走过的方向
-        if model == 'traval':  
-            return self.traval(pos, head)
+        if model == 'travel':  
+            return self.travel(pos, head)
         
         # 完全随机
         return (head+random.randint(0,360))%360
     
 
     #遍历式    
-    def traval(self, pos, head):
+    def travel(self, pos, head):
+        pos = self.shiftXY(pos)
         x = int(pos[0]//self.grid_size)
         y = int(pos[1]//self.grid_size)
+        if x<0 or y<0 :
+            print("Error: ", x, y)
         # 当前weizhi构成的9宫格，逆时针
         wz = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
         # fangxiang
         fx = [0, 45, 90, 135, 180, 225, 270, 315]
-        old_fx = (head+180)//45*45  #回头方向
+        old_fx = int(((head+180)//45*45)%360)  #回头方向
         hits = [0] * len(wz)
         maxHit = 10000
         for i, item in enumerate(wz):
@@ -80,11 +83,17 @@ class Screen:
                 hits[i] = self.grid[y1][x1]
         minHit = min(hits)
         choice = [fx[i] for i, hit in enumerate(hits) if hit <= minHit]
-        choice = set(choice)-set([old_fx])
-        if len(choice) == 0:
+        if head in choice:
             return head
+        if len(choice) == 1:
+            return choice[0]
+        choice = set(choice)-set([old_fx])
         return random.choice(list(choice))
 
+    # 坐标系转换
+    def shiftXY(self, pos):
+        x, y = pos
+        return (x+self.offset[0], y+self.offset[1])
     #
     def get_angle(self, pos1, pos2):
         x1, y1 = pos1
