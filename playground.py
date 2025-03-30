@@ -1,6 +1,9 @@
 import numpy as np
 import random
 from snake import Snake, Canvas
+import turtle
+import networkx as nx
+from networkx.algorithms.approximation import traveling_salesman_problem
 
 # 游乐园
 class Playground:
@@ -96,10 +99,35 @@ class Playground:
         heads = set(range(0, 360, angle))
         fx = heads-set([ohead])
         return random.choice(list(fx))
+    
+    # 旅行商问题
+    def tsp(self):
+        G = nx.Graph()
+        for i in range(len(self.canvas.beans)):
+            pos = self.canvas.beans[i][1]
+            id_name = str(i)
+            for j in range(i+1, len(self.canvas.beans)):
+                pos1 = self.canvas.beans[j][1]
+                id1_name = str(j)
+                weight = np.linalg.norm(np.array(pos)-np.array(pos1))
+                G.add_edge(id_name, id1_name, weight=weight)
+
+        tsp_path = traveling_salesman_problem(G, weight='weight')
+        for i in tsp_path:
+            pos = self.canvas.beans[int(i)][1]
+            self.route.append(pos)
+        return self.route
 
 if __name__ == '__main__':
     aCanvas = Canvas()
     aGame = Playground(Snake(aCanvas))
-    aGame.spiral(radius=200, step=5)
+    aGame.snake.grow(10)
+    # aGame.spiral(radius=50, step=5)
+    # aGame.play()
+    # aGame.wave(amplitude=50, wavelength=2*np.pi, phase=0)
+    # aGame.play()
+    # aGame.move(steps=1000, model='travel')
+    aGame.tsp()
     aGame.play()
-    
+
+    turtle.done()
