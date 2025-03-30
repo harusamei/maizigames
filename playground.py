@@ -16,7 +16,7 @@ class Playground:
         for pos in self.route:
             self.snake.move_goto(pos)
 
-    # 设置波浪参数
+    # 浪一浪
     def wave(self, amplitude=1, wavelength=2*np.pi, phase=0):
         amplitude = amplitude  # 振幅
         wavelength = wavelength  # 波长
@@ -30,22 +30,16 @@ class Playground:
 
         self.route = list(zip(x*x_enlarge, y*y_enlarge))
         return self.route
-        
+    
+    # 跑个圈    
     def circle(self, radius=1, angle=2*np.pi):
         x = np.cos(np.linspace(0, angle, 200))
         y = np.sin(np.linspace(0, angle, 200))
         self.route = list(zip(x*radius, y*radius))
         return self.route
     
-    # 旋转角度, 逆时针为正，顺时针为负
-    def rotate_angle(self, angle, rotation):
-        angle = angle%360+360
-        rotation = rotation%360
-        new_angle = angle + rotation
-        new_angle = (new_angle + 360) % 360
-        return new_angle
     
-    #遍历式    
+    #随便逛逛   
     def traval(self, sc_pos, head):
         # 粗略分为8个方向
         head = int(head//45*45)%360
@@ -82,8 +76,8 @@ if __name__ == '__main__':
     aCanvas = Canvas()
     aGame = Playground(Snake(aCanvas))
     aGame.snake.create()
-    for i in range(5):
-        aGame.wave()
-        aGame.play()
-        aGame.circle(200)
-        aGame.play()
+   
+    aGame.wave()
+    aGame.play()
+    aGame.circle(200)
+    aGame.play()
