@@ -2,7 +2,7 @@ import turtle
 import random
 import time
 import math
-
+import sys
 
 # 设置画布
 class Canvas:
@@ -13,6 +13,13 @@ class Canvas:
         self.screen = turtle.Screen()
         self.screen.bgcolor(bgcolor)
         self.screen.setup(width=width, height=height)
+
+        self.pen = turtle.Turtle()
+        self.pen.shape('square')
+        self.pen.shapesize(0.5, 0.5, 2)
+        self.pen.speed(0)
+        self.beans = []
+
         self.width = int(width)
         self.height = int(height)
         # 需要以中心为原点时的偏移量
@@ -22,6 +29,7 @@ class Canvas:
         self.grid = [[0 for _ in range(self.width//self.grid_size)] for _ in range(self.height//self.grid_size)]
         # 行数是高，列数是宽
         print("Grid: ", len(self.grid[0]), len(self.grid))
+        self.place_beans(10)
 
     # 撞墙检测，如果撞墙返回新位置
     def test_wall(self, sc_pos):
@@ -39,6 +47,18 @@ class Canvas:
         x = int(pos[0]//self.grid_size)
         y = int(pos[1]//self.grid_size)
         self.grid[y][x] += 1
+        return
+    
+    def place_beans(self, count=10):
+        
+        for i in range(count):
+            x = random.randint(-self.width*0.45, self.width*0.45)
+            y = random.randint(-self.height*0.45, self.height*0.45)
+            color = random.choice(['red', 'blue', 'green', 'yellow', 'purple', 'orange'])
+            self.pen.color(color)
+            self.pen.penup()
+            self.pen.goto(x, y)
+            self.beans.append((self.pen.stamp(), (x, y)))
         return
     
     def turtle2screen(self, pos):
@@ -73,7 +93,7 @@ class Snake:
         self.shead.speed(0)
 
         self.snake.shape("circle")      # 蛇身是个圆
-        self.snake.color("blue")
+        self.snake.color("red")
         self.snake.shapesize(self.diameter/2, self.diameter/2, 1)
         self.snake.speed(0)
         
@@ -208,6 +228,7 @@ if __name__ == '__main__':
     # 创建一个Turtle对象
     start = time.time()
     myCanvas = Canvas()
+    
     snake = Snake(myCanvas)
     snake.create((100,100), "red")
 
@@ -222,4 +243,5 @@ if __name__ == '__main__':
     snake.move_goto((10, 400))
     end = time.time()
     print("Time: ", end-start)
+
     turtle.done()

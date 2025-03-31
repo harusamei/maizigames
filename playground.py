@@ -1,6 +1,9 @@
 import numpy as np
 import random
 from snake import Snake, Canvas
+import turtle
+import networkx as nx
+from networkx.algorithms.approximation import traveling_salesman_problem
 
 # 游乐园
 class Playground:
@@ -10,6 +13,7 @@ class Playground:
         self.canvas = aSnake.canvas
         self.width = self.canvas.width
         self.height = self.canvas.height
+        self.snake.create(color='blue')
         self.route = []
     
     def play(self):
@@ -30,17 +34,34 @@ class Playground:
 
         self.route = list(zip(x*x_enlarge, y*y_enlarge))
         return self.route
-    
-    # 跑个圈    
-    def circle(self, radius=1, angle=2*np.pi):
+        
+    def circle(self, radius=100, angle=2*np.pi):
         x = np.cos(np.linspace(0, angle, 200))
         y = np.sin(np.linspace(0, angle, 200))
         self.route = list(zip(x*radius, y*radius))
         return self.route
     
+    def spiral(self, radius=100, angle=8*np.pi, step=0.5):
+        theta = np.linspace(0, angle, 200)
+        # 计算螺旋的 x 和 y 坐标
+        x = np.cos(theta) * (radius + step * theta)
+        y = np.sin(theta) * (radius + step * theta)
+        # 将坐标组合成路径
+        self.route = list(zip(x, y))
+        return self.route
     
-    #随便逛逛   
-    def traval(self, sc_pos, head):
+    def move(self, steps= 100, model= 'travel'):
+        head = 0
+        for _ in range(steps):
+            sc_pos = self.canvas.turtle2screen(self.snake.snake.pos())
+            if model.lower() == 'travel':
+                head = self.travel(sc_pos, head)
+            elif model.lower() == 'random':
+                head = self.random(sc_pos, head)
+            self.snake.move_forword(head)
+
+    #遍历式 
+    def travel(self, sc_pos, head):
         # 粗略分为8个方向
         head = int(head//45*45)%360
         grid_size = self.canvas.grid_size
@@ -61,7 +82,6 @@ class Playground:
             if sc_pos1 != sc_pos:
                 hits[i] = maxHit
             else:
-                print(x1, y1)
                 hits[i] = self.canvas.grid[y1][x1]
 
         minHit = min(hits)
@@ -71,13 +91,43 @@ class Playground:
             return head
         return random.choice(list(choice))
 
+    #没头苍蝇式
+    def random(self, sc_pos, head):
+        # 粗略分为4个方向
+        angle = 360//4
+        ohead = int((head+180)//angle*angle)%360
+        heads = set(range(0, 360, angle))
+        fx = heads-set([ohead])
+        return random.choice(list(fx))
+    
+    # 旅行商问题
+    def tsp(self):
+        G = nx.Graph()
+        for i in range(len(self.canvas.beans)):
+            pos = self.canvas.beans[i][1]
+            id_name = str(i)
+            for j in range(i+1, len(self.canvas.beans)):
+                pos1 = self.canvas.beans[j][1]
+                id1_name = str(j)
+                weight = np.linalg.norm(np.array(pos)-np.array(pos1))
+                G.add_edge(id_name, id1_name, weight=weight)
+
+        tsp_path = traveling_salesman_problem(G, weight='weight')
+        for i in tsp_path:
+            pos = self.canvas.beans[int(i)][1]
+            self.route.append(pos)
+        return self.route
 
 if __name__ == '__main__':
     aCanvas = Canvas()
     aGame = Playground(Snake(aCanvas))
-    aGame.snake.create()
-   
-    aGame.wave()
+    aGame.snake.grow(10)
+    aGame.spiral(radius=50, step=5)
     aGame.play()
-    aGame.circle(200)
+    aGame.wave(amplitude=50, wavelength=2*np.pi, phase=0)
     aGame.play()
+    aGame.move(steps=1000, model='travel')
+    aGame.tsp()
+    aGame.play()
+
+    turtle.done()
