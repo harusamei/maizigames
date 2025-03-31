@@ -11,6 +11,7 @@ class Canvas:
     # 默认使用screen的坐标系，需要转换
     def __init__(self, width=800, height=600, bgcolor="white", grid_size=10):
         self.screen = turtle.Screen()
+        self.screen.title("Snake Game")
         self.screen.bgcolor(bgcolor)
         self.screen.setup(width=width, height=height)
 
@@ -117,7 +118,8 @@ class Snake:
         pos1 = self.test_wall(pos)
         if pos1 != pos:
             pos = pos1
-        head = self.get_angle(self.shead.pos(), pos)
+        #head = self.get_angle(self.shead.pos(), pos)
+        head = self.shead.towards(pos)
         steps = int(self.shead.distance(pos)/self.step_size)
         for _ in range(steps):
             self.move_forword(head)
@@ -182,7 +184,8 @@ class Snake:
             pos1 = self.test_wall(pos)
             # 撞墙了, 调整到新位置
             if pos1 != pos:
-                new_head = self.get_angle(pos, pos1)
+                #new_head = self.get_angle(pos, pos1)
+                new_head = self.snake.towards(pos1)
                 self.snake.setheading(new_head)
                 self.snake.goto(pos1)
                 self.body.append((self.snake.stamp(), pos1))

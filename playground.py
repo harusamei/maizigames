@@ -118,16 +118,28 @@ class Playground:
             self.route.append(pos)
         return self.route
 
+    # 画出路径
+    def move_towards_mouse(self, x, y):
+        self.snake.move_goto((x, y))
+
+    # 鼠标点击事件
+    def click_move(self):
+        
+        self.canvas.screen.onclick(self.move_towards_mouse)
+        self.canvas.screen.listen()
+        self.canvas.screen.mainloop()
+        
+
 if __name__ == '__main__':
     aCanvas = Canvas()
     aGame = Playground(Snake(aCanvas))
     aGame.snake.grow(10)
-    aGame.spiral(radius=50, step=5)
-    aGame.play()
-    aGame.wave(amplitude=50, wavelength=2*np.pi, phase=0)
-    aGame.play()
-    aGame.move(steps=1000, model='travel')
-    aGame.tsp()
-    aGame.play()
-
+    # aGame.spiral(radius=50, step=5)
+    # aGame.play()
+    # aGame.wave(amplitude=50, wavelength=2*np.pi, phase=0)
+    # aGame.play()
+    # aGame.move(steps=1000, model='travel')
+    # aGame.tsp()
+    # aGame.play()
+    aGame.click_move()
     turtle.done()
