@@ -50,6 +50,15 @@ class Playground:
         self.route = list(zip(x, y))
         return self.route
     
+    def zhixian(self, sc_pos):
+        x1= sc_pos[0]
+        y1= sc_pos[1]
+        for i in range(10):
+            self.route.append((x1, y1))
+            x1 = x1 +i*10
+            y1 += i*5
+
+
     def move(self, steps= 100, model= 'travel'):
         head = 0
         for _ in range(steps):
@@ -100,6 +109,8 @@ class Playground:
         fx = heads-set([ohead])
         return random.choice(list(fx))
     
+    
+    
     # 旅行商问题
     def tsp(self):
         G = nx.Graph()
@@ -124,7 +135,7 @@ class Playground:
 
     # 鼠标点击事件
     def click_move(self):
-        
+                                                                                                                
         self.canvas.screen.onclick(self.move_towards_mouse)
         self.canvas.screen.listen()
         self.canvas.screen.mainloop()
@@ -133,7 +144,7 @@ class Playground:
 if __name__ == '__main__':
     aCanvas = Canvas()
     aGame = Playground(Snake(aCanvas))
-    aGame.snake.grow(10)
+    #aGame.snake.grow(10)
     # aGame.spiral(radius=50, step=5)
     # aGame.play()
     # aGame.wave(amplitude=50, wavelength=2*np.pi, phase=0)
@@ -141,5 +152,7 @@ if __name__ == '__main__':
     # aGame.move(steps=1000, model='travel')
     # aGame.tsp()
     # aGame.play()
-    aGame.click_move()
+    # aGame.click_move()
+    aGame.zhixian((0, 0))
+    aGame.play()
     turtle.done()
